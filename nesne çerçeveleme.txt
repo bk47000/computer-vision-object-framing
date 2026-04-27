@@ -1,0 +1,67 @@
+import cv2
+import numpy as np
+
+cap = cv2.VideoCapture(1)  
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("Bağlantı hatası! Tablet kameranı kontrol et.")
+        break 
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    lower_red1 = np.array([0, 50, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 50, 50])
+    upper_red2 = np.array([180, 255, 255])
+
+    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+    mask = cv2.bitwise_or(mask1, mask2)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+  
+    frame_center = (frame.shape[1] // 2, frame.shape[0] // 2)
+
+    
+    cv2.circle(frame, frame_center, 5, (0, 255, 0), -1)
+
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        object_center = (x + w // 2, y + h // 2)
+
+        
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        
+        cv2.circle(frame, object_center, 5, (255, 0, 0), -1)
+
+        
+        cv2.line(frame, frame_center, object_center, (0, 255, 0), 2)
+
+  
+        if object_center[0] > frame_center[0]:
+            text_x = "Right"
+        else:
+            text_x = "Left"
+
+        if object_center[1] > frame_center[1]:
+            text_y = "Down"
+        else:
+            text_y = "Up"
+
+       
+        cv2.putText(frame, f"{text_x} {text_y}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+   
+    cv2.imshow("Frame", frame)
+    cv2.imshow("Mask", mask)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
